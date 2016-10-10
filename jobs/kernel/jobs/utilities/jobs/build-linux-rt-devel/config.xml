@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<matrix-project plugin="matrix-project@1.7.1">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>BRANCH</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>CONFIGS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>OVERLAYS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>BOOTTESTS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>COMPILETEST</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>COMMIT</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>GITREPO</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PUBLICREPO</name>
+          <description></description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>HTTPREPO</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ENTRYOWNER</name>
+          <description></description>
+          <defaultValue>consumer</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.libvirt.BeforeJobSnapshotJobProperty plugin="libvirt-slave@1.8.6-SNAPSHOT"/>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>${GITREPO}</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>${BRANCH}</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.CloneOption>
+        <shallow>false</shallow>
+        <noTags>false</noTags>
+        <reference>/home/mirror/kernel</reference>
+        <timeout>60</timeout>
+        <depth>0</depth>
+        <honorRefspec>false</honorRefspec>
+      </hudson.plugins.git.extensions.impl.CloneOption>
+      <hudson.plugins.git.extensions.impl.CheckoutOption>
+        <timeout>60</timeout>
+      </hudson.plugins.git.extensions.impl.CheckoutOption>
+    </extensions>
+  </scm>
+  <scmCheckoutRetryCount>5</scmCheckoutRetryCount>
+  <assignedNode>kernel</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>true</concurrentBuild>
+  <axes>
+    <hudson.matrix.LabelAxis>
+      <name>node</name>
+      <values>
+        <string>kernel</string>
+      </values>
+    </hudson.matrix.LabelAxis>
+    <ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis plugin="dynamic-axis@1.0.3">
+      <name>branch</name>
+      <values>
+        <string>BRANCH</string>
+      </values>
+      <varName>BRANCH</varName>
+      <axisValues>
+        <string>default</string>
+      </axisValues>
+    </ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis>
+    <ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis plugin="dynamic-axis@1.0.3">
+      <name>config</name>
+      <values>
+        <string>CONFIGS</string>
+      </values>
+      <varName>CONFIGS</varName>
+      <axisValues>
+        <string>default</string>
+      </axisValues>
+    </ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis>
+    <ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis plugin="dynamic-axis@1.0.3">
+      <name>overlay</name>
+      <values>
+        <string>OVERLAYS</string>
+      </values>
+      <varName>OVERLAYS</varName>
+      <axisValues>
+        <string>default</string>
+      </axisValues>
+    </ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis>
+  </axes>
+  <builders>
+    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38.1">
+      <project>environment</project>
+      <filter></filter>
+      <target>.env</target>
+      <excludes></excludes>
+      <selector class="hudson.plugins.copyartifact.StatusBuildSelector"/>
+      <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
+    </hudson.plugins.copyartifact.CopyArtifact>
+    <org.jenkinsci.plugins.managedscripts.ScriptBuildStep plugin="managed-scripts@1.2.4">
+      <buildStepId>org.jenkinsci.plugins.managedscripts.ScriptConfig1457728747646</buildStepId>
+      <buildStepArgs>
+        <string>$config</string>
+        <string>$overlay</string>
+      </buildStepArgs>
+      <tokenized>false</tokenized>
+    </org.jenkinsci.plugins.managedscripts.ScriptBuildStep>
+    <EnvInjectBuilder plugin="envinject@1.92.1">
+      <info>
+        <propertiesFilePath>build/.properties</propertiesFilePath>
+      </info>
+    </EnvInjectBuilder>
+    <hudson.tasks.Shell>
+      <command>mkdir -p report/$config/$overlay
+
+make -j 8 O=build LOCALVERSION=-$BUILD_NUMBER savedefconfig
+cp build/defconfig report/$config/$overlay/
+cp build/.config report/$config/$overlay/config
+
+cat &lt;&lt; _EOF_ &gt; build/cmd
+make -j 16 O=build LOCALVERSION=-$BUILD_NUMBER &gt; report/build.log 2&gt;&amp;1
+make -j 16 O=build LOCALVERSION=-$BUILD_NUMBER ${BUILD_TARGET:-bindeb-pkg} &gt; report/package.log 2&gt;&amp;1
+
+if [ -d build/arch/${ARCH}/boot/dts ]
+then
+    tar cJf report/$config/$overlay/dtbs-${BUILD_NUMBER}.tar.xz --exclude &apos;dts/.*&apos; -C build/arch/${ARCH}/boot dts
+fi
+cp *deb report/$config/$overlay/
+_EOF_
+
+
+echo -n &quot;INSERT INTO build (custom, defconfig, overlay, pass, kernelbuild_id, config, arch, testscript, owner) VALUES (&quot;\&apos;&quot;$(cat .custcommit)&quot;\&apos;&quot;, decode(&quot;\&apos;&quot;&quot; &gt; build/build.psql
+hexdump -v -e &apos;/1 &quot;%02X&quot;&apos; build/defconfig &gt;&gt; build/build.psql 
+echo -n \&apos;&quot;, &quot;\&apos;&quot;hex&quot;\&apos;&quot;), &quot;\&apos;&quot;${overlay}&quot;\&apos;&quot;, &quot;\&apos;&quot;0&quot;\&apos;&quot;, &quot;\&apos;&quot;${BUILD_NUMBER}&quot;\&apos;&quot;, &quot;\&apos;&quot;$(basename $config)&quot;\&apos;&quot;, &quot;\&apos;&quot;$ARCH&quot;\&apos;&quot;, decode(&quot;\&apos; &gt;&gt; build/build.psql
+hexdump -v -e &apos;/1 &quot;%02X&quot;&apos; build/cmd &gt;&gt; build/build.psql
+echo \&apos;&quot;, &quot;\&apos;&quot;hex&quot;\&apos;&quot;), &quot;\&apos;&quot;${ENTRYOWNER}&quot;\&apos;&quot;) RETURNING id;&quot; &gt;&gt; build/build.psql
+export BUILDID=&quot;$($PGSQL -A -q -t RT-Test &lt; build/build.psql)&quot;
+
+chmod a+x build/cmd
+build/cmd
+
+$PGSQL -q -t -c &quot;UPDATE build SET pass = &quot;\&apos;&quot;1&quot;\&apos;&quot; WHERE id = &quot;\&apos;&quot;$BUILDID&quot;\&apos;&quot;;&quot; RT-Test</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.parameterizedtrigger.BuildTrigger plugin="parameterized-trigger@2.32">
+      <configs>
+        <hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
+          <configs>
+            <hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
+              <properties>KERNELBUILD=${BUILD_NUMBER}
+BOOTTESTS=${BOOTTESTS}
+ENTRYOWNER=${ENTRYOWNER}
+</properties>
+            </hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
+          </configs>
+          <projects>kernel/boottest</projects>
+          <condition>UNSTABLE_OR_BETTER</condition>
+          <triggerWithNoParameters>false</triggerWithNoParameters>
+        </hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
+      </configs>
+    </hudson.plugins.parameterizedtrigger.BuildTrigger>
+    <join.JoinTrigger plugin="join@1.21">
+      <joinProjects></joinProjects>
+      <joinPublishers>
+        <hudson.plugins.parameterizedtrigger.BuildTrigger plugin="parameterized-trigger@2.32">
+          <configs>
+            <hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
+              <configs>
+                <hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
+                  <properties>KERNELBUILD=${BUILD_NUMBER}</properties>
+                </hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
+              </configs>
+              <projects>kernel/utilities/markgood</projects>
+              <condition>SUCCESS</condition>
+              <triggerWithNoParameters>false</triggerWithNoParameters>
+            </hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
+          </configs>
+        </hudson.plugins.parameterizedtrigger.BuildTrigger>
+      </joinPublishers>
+      <resultThreshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </resultThreshold>
+    </join.JoinTrigger>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>report/**</artifacts>
+      <allowEmptyArchive>false</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+    <com.lookout.jenkins.EnvironmentScript plugin="environment-script@1.2.5">
+      <script>GITID=$($PGSQL -q -t -c &quot;INSERT INTO git (path, public,httprepo, owner) VALUES(&quot;\&apos;&quot;${GITREPO}&quot;\&apos;&quot;, &quot;\&apos;&quot;${PUBLICREPO}&quot;\&apos;&quot;, &quot;\&apos;&quot;${HTTPREPO}&quot;\&apos;&quot;, &quot;\&apos;&quot;${ENTRYOWNER}&quot;\&apos;&quot;) RETURNING id;&quot; RT-Test)
+TAGSID=$($PGSQL -q -t -c &quot;INSERT INTO tags (commit, name, git_id) VALUES(&quot;\&apos;&quot;$(git rev-parse HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;$(git describe HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;${GITID}&quot;\&apos;&quot;) RETURNING id;&quot; RT-Test)
+$PGSQL -q -t -c &quot;INSERT INTO rttest VALUES (&quot;\&apos;&quot;${COMPILETEST}&quot;\&apos;&quot;,&quot;\&apos;&quot;${BRANCH}&quot;\&apos;&quot;,&quot;\&apos;&quot;$(date -u +&quot;%Y-%m-%d %H:%M:%S&quot;)&quot;\&apos;&quot;,&quot;\&apos;&quot;${BUILD_NUMBER}&quot;\&apos;&quot;, &quot;\&apos;&quot;$(git rev-parse HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;${TAGSID}&quot;\&apos;&quot;, &quot;\&apos;&quot;0&quot;\&apos;&quot;, &quot;\&apos;&quot;${ENTRYOWNER}&quot;\&apos;&quot;)&quot; RT-Test
+</script>
+      <scriptType>unixScript</scriptType>
+      <runOnlyOnParent>true</runOnlyOnParent>
+      <hideEnvironmentVariablesValues>false</hideEnvironmentVariablesValues>
+    </com.lookout.jenkins.EnvironmentScript>
+  </buildWrappers>
+  <executionStrategy class="hudson.matrix.DefaultMatrixExecutionStrategyImpl">
+    <runSequentially>false</runSequentially>
+  </executionStrategy>
+</matrix-project>
