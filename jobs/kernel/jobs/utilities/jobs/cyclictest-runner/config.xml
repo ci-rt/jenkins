@@ -9,7 +9,7 @@
         <org.jvnet.jenkins.plugins.nodelabelparameter.LabelParameterDefinition plugin="nodelabelparameter@1.7.2">
           <name>TARGET</name>
           <description></description>
-          <defaultValue>iommu</defaultValue>
+          <defaultValue>target1</defaultValue>
           <allNodesMatchingLabel>false</allNodesMatchingLabel>
           <triggerIfResult>allCases</triggerIfResult>
           <nodeEligibility class="org.jvnet.jenkins.plugins.nodelabelparameter.node.AllNodeEligibility"/>
@@ -50,7 +50,7 @@
   <builders>
     <hudson.tasks.Shell>
       <command>cat &lt;&lt; _EOF_ &gt; histogram.sh
-$LOADGEN
+${LOADGEN:=true} &amp;
 sudo cyclictest -q -m -Sp99 -D${DURATION} -i${INTERVAL} -h${LIMIT} -b${LIMIT} &gt; histogram.dat
 _EOF_
 

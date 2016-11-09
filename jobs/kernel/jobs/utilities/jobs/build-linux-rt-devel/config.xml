@@ -32,6 +32,16 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>COMPILETESTBRANCH</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>COMPILETESTCOMMIT</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>COMMIT</name>
           <description></description>
           <defaultValue></defaultValue>
@@ -163,8 +173,16 @@ make -j 8 O=build LOCALVERSION=-$BUILD_NUMBER savedefconfig
 cp build/defconfig report/$config/$overlay/
 cp build/.config report/$config/$overlay/config
 
+if [ x = x&quot;$MKDTBS&quot; ]
+then
+	export MKDTBSCMD=&quot;&quot;
+else
+	export MKDTBSCMD=&quot;make -j 16 O=build LOCALVERSION=-$BUILD_NUMBER dtbs&quot;
+fi
+
 cat &lt;&lt; _EOF_ &gt; build/cmd
 make -j 16 O=build LOCALVERSION=-$BUILD_NUMBER &gt; report/build.log 2&gt;&amp;1
+$MKDTBSCMD
 make -j 16 O=build LOCALVERSION=-$BUILD_NUMBER ${BUILD_TARGET:-bindeb-pkg} &gt; report/package.log 2&gt;&amp;1
 
 if [ -d build/arch/${ARCH}/boot/dts ]
@@ -183,12 +201,60 @@ echo \&apos;&quot;, &quot;\&apos;&quot;hex&quot;\&apos;&quot;), &quot;\&apos;&qu
 export BUILDID=&quot;$($PGSQL -A -q -t RT-Test &lt; build/build.psql)&quot;
 
 chmod a+x build/cmd
+cp build/cmd report/$config/$overlay/
+
 build/cmd
 
 $PGSQL -q -t -c &quot;UPDATE build SET pass = &quot;\&apos;&quot;1&quot;\&apos;&quot; WHERE id = &quot;\&apos;&quot;$BUILDID&quot;\&apos;&quot;;&quot; RT-Test</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
+    <hudson.plugins.warnings.WarningsPublisher plugin="warnings@4.57">
+      <healthy></healthy>
+      <unHealthy></unHealthy>
+      <thresholdLimit>low</thresholdLimit>
+      <pluginName>[WARNINGS] </pluginName>
+      <defaultEncoding></defaultEncoding>
+      <canRunOnFailed>false</canRunOnFailed>
+      <usePreviousBuildAsReference>false</usePreviousBuildAsReference>
+      <useStableBuildAsReference>false</useStableBuildAsReference>
+      <useDeltaValues>false</useDeltaValues>
+      <thresholds plugin="analysis-core@1.79">
+        <unstableTotalAll></unstableTotalAll>
+        <unstableTotalHigh></unstableTotalHigh>
+        <unstableTotalNormal></unstableTotalNormal>
+        <unstableTotalLow></unstableTotalLow>
+        <unstableNewAll></unstableNewAll>
+        <unstableNewHigh></unstableNewHigh>
+        <unstableNewNormal></unstableNewNormal>
+        <unstableNewLow></unstableNewLow>
+        <failedTotalAll></failedTotalAll>
+        <failedTotalHigh></failedTotalHigh>
+        <failedTotalNormal></failedTotalNormal>
+        <failedTotalLow></failedTotalLow>
+        <failedNewAll></failedNewAll>
+        <failedNewHigh></failedNewHigh>
+        <failedNewNormal></failedNewNormal>
+        <failedNewLow></failedNewLow>
+      </thresholds>
+      <shouldDetectModules>false</shouldDetectModules>
+      <dontComputeNew>true</dontComputeNew>
+      <doNotResolveRelativePaths>true</doNotResolveRelativePaths>
+      <includePattern></includePattern>
+      <excludePattern></excludePattern>
+      <messagesPattern></messagesPattern>
+      <parserConfigurations>
+        <hudson.plugins.warnings.ParserConfiguration>
+          <pattern>**/report/build.log</pattern>
+          <parserName>GNU Make + GNU C Compiler (gcc)</parserName>
+        </hudson.plugins.warnings.ParserConfiguration>
+      </parserConfigurations>
+      <consoleParsers>
+        <hudson.plugins.warnings.ConsoleParser>
+          <parserName>GNU Make + GNU C Compiler (gcc)</parserName>
+        </hudson.plugins.warnings.ConsoleParser>
+      </consoleParsers>
+    </hudson.plugins.warnings.WarningsPublisher>
     <hudson.plugins.parameterizedtrigger.BuildTrigger plugin="parameterized-trigger@2.32">
       <configs>
         <hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
@@ -197,11 +263,13 @@ $PGSQL -q -t -c &quot;UPDATE build SET pass = &quot;\&apos;&quot;1&quot;\&apos;&
               <properties>KERNELBUILD=${BUILD_NUMBER}
 BOOTTESTS=${BOOTTESTS}
 ENTRYOWNER=${ENTRYOWNER}
+COMPILETESTBRANCH=${COMPILETESTBRANCH}
+COMPILETESTCOMMIT=${COMPILETESTCOMMIT}
 </properties>
             </hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
           </configs>
           <projects>kernel/boottest</projects>
-          <condition>UNSTABLE_OR_BETTER</condition>
+          <condition>ALWAYS</condition>
           <triggerWithNoParameters>false</triggerWithNoParameters>
         </hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
       </configs>
@@ -241,7 +309,7 @@ ENTRYOWNER=${ENTRYOWNER}
     </hudson.tasks.ArtifactArchiver>
   </publishers>
   <buildWrappers>
-    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.32">
       <deleteDirs>false</deleteDirs>
       <cleanupParameter></cleanupParameter>
       <externalDelete></externalDelete>
@@ -249,7 +317,7 @@ ENTRYOWNER=${ENTRYOWNER}
     <com.lookout.jenkins.EnvironmentScript plugin="environment-script@1.2.5">
       <script>GITID=$($PGSQL -q -t -c &quot;INSERT INTO git (path, public,httprepo, owner) VALUES(&quot;\&apos;&quot;${GITREPO}&quot;\&apos;&quot;, &quot;\&apos;&quot;${PUBLICREPO}&quot;\&apos;&quot;, &quot;\&apos;&quot;${HTTPREPO}&quot;\&apos;&quot;, &quot;\&apos;&quot;${ENTRYOWNER}&quot;\&apos;&quot;) RETURNING id;&quot; RT-Test)
 TAGSID=$($PGSQL -q -t -c &quot;INSERT INTO tags (commit, name, git_id) VALUES(&quot;\&apos;&quot;$(git rev-parse HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;$(git describe HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;${GITID}&quot;\&apos;&quot;) RETURNING id;&quot; RT-Test)
-$PGSQL -q -t -c &quot;INSERT INTO rttest VALUES (&quot;\&apos;&quot;${COMPILETEST}&quot;\&apos;&quot;,&quot;\&apos;&quot;${BRANCH}&quot;\&apos;&quot;,&quot;\&apos;&quot;$(date -u +&quot;%Y-%m-%d %H:%M:%S&quot;)&quot;\&apos;&quot;,&quot;\&apos;&quot;${BUILD_NUMBER}&quot;\&apos;&quot;, &quot;\&apos;&quot;$(git rev-parse HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;${TAGSID}&quot;\&apos;&quot;, &quot;\&apos;&quot;0&quot;\&apos;&quot;, &quot;\&apos;&quot;${ENTRYOWNER}&quot;\&apos;&quot;)&quot; RT-Test
+$PGSQL -q -t -c &quot;INSERT INTO rttest VALUES (&quot;\&apos;&quot;${COMPILETEST}&quot;\&apos;&quot;,&quot;\&apos;&quot;${BRANCH}&quot;\&apos;&quot;,&quot;\&apos;&quot;$(date -u +&quot;%Y-%m-%d %H:%M:%S&quot;)&quot;\&apos;&quot;,&quot;\&apos;&quot;${BUILD_NUMBER}&quot;\&apos;&quot;, &quot;\&apos;&quot;$(git rev-parse HEAD)&quot;\&apos;&quot;, &quot;\&apos;&quot;${TAGSID}&quot;\&apos;&quot;, &quot;\&apos;&quot;0&quot;\&apos;&quot;, &quot;\&apos;&quot;${ENTRYOWNER}&quot;\&apos;&quot;, &quot;\&apos;&quot;${COMPILETESTBRANCH}&quot;\&apos;&quot;)&quot; RT-Test
 </script>
       <scriptType>unixScript</scriptType>
       <runOnlyOnParent>true</runOnlyOnParent>

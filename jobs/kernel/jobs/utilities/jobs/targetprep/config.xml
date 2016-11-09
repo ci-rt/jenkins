@@ -47,7 +47,9 @@
       <filter>**/$CONFIG/$OVERLAY/*</filter>
       <target></target>
       <excludes></excludes>
-      <selector class="hudson.plugins.copyartifact.StatusBuildSelector"/>
+      <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
+        <buildNumber>${KERNELBUILD}</buildNumber>
+      </selector>
       <flatten>true</flatten>
       <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
@@ -55,6 +57,12 @@
       <command>rm -f /boot/jenkins/bzImage-test
 export DEBPKG=$(find . -name &quot;*linux-image*-${KERNELBUILD}-*.deb&quot;)
 export DEB=$(basename $DEBPKG)
+
+if [ x = x&quot;$DEBPKG&quot; ]
+then
+    echo &quot;No Kernel package found&quot;
+    exit 1
+fi
 
 sudo dpkg -i $DEBPKG
 

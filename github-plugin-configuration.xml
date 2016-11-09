@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<github-plugin-configuration plugin="github@1.22.2">
+  <configs/>
+  <hookSecretConfig>
+    <credentialsId>XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX</credentialsId>
+  </hookSecretConfig>
+</github-plugin-configuration>

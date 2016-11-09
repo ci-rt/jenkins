@@ -9,12 +9,12 @@
         <hudson.model.StringParameterDefinition>
           <name>CYCLICTESTS</name>
           <description></description>
-          <defaultValue>cyclictest/iommu/idle</defaultValue>
+          <defaultValue>cyclictest/target1/idle</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>TARGET</name>
           <description></description>
-          <defaultValue>iommu</defaultValue>
+          <defaultValue>target1</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>BOOTTESTID</name>
@@ -24,7 +24,7 @@
         <hudson.model.StringParameterDefinition>
           <name>ENTRYOWNER</name>
           <description></description>
-          <defaultValue>linutronix</defaultValue>
+          <defaultValue>consumer</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
@@ -123,9 +123,210 @@ cyclictest=${cyclictest}</properties>
       </selector>
       <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
-    <hudson.tasks.Shell>
-      <command>/usr/local/bin/jenkins-cyclictest-script.py result/${cyclictest}/histogram.dat result/${cyclictest}/histogram.sh </command>
-    </hudson.tasks.Shell>
+    <hudson.plugins.python.Python plugin="python@1.3">
+      <command>#!/usr/bin/python
+
+import sys
+import os
+from os import environ as env
+import re
+import numpy
+from sqlalchemy import Table, MetaData
+from sqlalchemy import create_engine
+
+def create_db_connection():
+    # Create an engine, connecting to the remote database
+    db_type = &quot;postgresql&quot;
+    db_host = &quot;db.example.com:5432&quot;
+    db_user = &quot;jenkins:jenkins&quot;
+    db_name = &quot;RT-Test&quot;
+    
+    db = &quot;%s://%s@%s/%s&quot; %(db_type, db_user, db_host, db_name)
+    
+    engine = create_engine(db)
+
+    # get histogram and cyclictest table
+    meta = MetaData()
+    histogram = Table(&apos;histogram&apos;, meta, autoload=True, autoload_with=engine)
+
+    cyclictest = Table(&apos;cyclictest&apos;, meta, autoload=True, autoload_with=engine)
+
+    # start a db connection
+    try:
+        con = engine.connect()
+    except:
+        return 1, &quot;Problem with DB connection\n&quot;
+
+    return con, histogram, cyclictest
+
+
+def submit_hist_data(con, hist_table, cyc_data, threads):
+    trans = con.begin()
+
+    try:
+        for i in cyc_data:
+            con.execute(hist_table.insert(),
+                        cpu=i[0],
+                        latency=i[1],
+                        count=i[2],
+                        cyclictest_id=env.get(&quot;BUILD_NUMBER&quot;),
+                        owner=env.get(&quot;ENTRYOWNER&quot;))
+        trans.commit()
+    except:
+        trans.rollback()
+        raise
+
+
+def get_cyclictestcmd(cmd):
+    try:
+        f = open(cmd, &apos;r&apos;)
+        data = f.read()
+
+    except IOError, e:
+        print &quot;Error %d: %s&quot; % (e.args[0],e.args[1])
+        return 1
+
+    if f:
+        f.close()
+        return data
+    
+    
+def analyze_hist_data(line, threads, cyc_data):
+    # prepare data as list of type int: latency followed by
+    # occurence numbers of threads
+    line = line.split(&quot;\n&quot;)[0]
+    values = re.split(&apos;\ |\t&apos;, line)
+    values = map(int, values)
+
+    latency = values[0]
+
+    # if occurence on all threads is zero, nothing has to be done
+    if all(v == 0 for v in values[1:]):
+        return cyc_data
+
+    # remove latency value from array, that there are only the
+    # occurence numbers of the threads left
+    del values[0]
+
+    # create array of lists with cpu, latency, occurence number
+    for i in range(threads):
+        if values[i] != 0:
+            cyc_data.append([i, latency, values[i]])
+
+    return cyc_data
+
+
+def parse_dat_file(data):
+    threads = 0
+    breaks = True
+    minmax = [0] * 3
+    cyc_data = []
+
+    # lines with Max, Avg, Min and Break after # should not be ignored
+    # all other lines starting with # should be ignored!
+    # Break thread also can be ignored
+    re_ignore = re.compile(&quot;^# [^MAB]&quot;)
+    re_empty = re.compile(&quot;^\n&quot;)
+    re_breakthread = re.compile(&quot;^# Break thread&quot;)
+
+    re_minavgmax = re.compile(&quot;^# [MA]&quot;)
+    re_max = re.compile(&quot;^# Max&quot;)
+    re_min = re.compile(&quot;^# Min&quot;)
+    re_avg = re.compile(&quot;^# Avg&quot;)
+
+    re_break = re.compile(&quot;^# Break value&quot;)
+
+
+    with open(data, &apos;r&apos;) as d:
+        for line in d:
+            # all ignore cases
+            if re_ignore.search(line) or re_empty.search(line)\
+               or re_breakthread.search(line):
+                continue
+
+            # if min, max or avg, take only needed values and type
+            # cast to int
+            elif re_minavgmax.search(line):
+                buf = line.split(&quot;:&quot;)[1].split(&quot;\n&quot;)[0]
+                values = buf.split(&quot; &quot;)[1:]
+                values = map(int, values)
+
+                # write min value to array
+                if re_min.search(line):
+                    minmax[0] = min(values)
+
+                
+                elif re_avg.search(line):
+                    # remove zeros of values, then calculate avg
+                    if 0 in values:
+                        values.remove(0)
+                    avg = numpy.mean(values)
+                    minmax[1] = int(round(avg))
+
+                # write max value to array
+                elif re_max.search(line):
+                    minmax[2] = int(max(values))
+
+            # if there is a break line, set break (pass = false)
+            elif re_break.search(line):
+                breaks = False
+            
+            # calculate cyclictest thread number (will be done in the
+            # first data line, latency of zero cannot exist)
+            elif threads == 0:
+                threads = len(line.split()) - 1
+
+            else:
+                cyc_data = analyze_hist_data(line, threads, cyc_data)
+                
+
+    return minmax, breaks, threads, cyc_data
+
+
+cyclic_env = env.get(&quot;cyclictest&quot;)
+
+data = &quot;result/&quot;+cyclic_env+&quot;/histogram.dat&quot;
+cmd = &quot;result/&quot;+cyclic_env+&quot;/histogram.sh&quot;
+
+con, hist_table, cyclic_table = create_db_connection()
+
+if con == 1:
+    exit(1)
+
+minmax, breaks, threads, cyc_data = parse_dat_file(data)
+
+cyclic_cmd = get_cyclictestcmd(cmd)
+
+# submit created data into db
+trans = con.begin()
+
+try:
+    # create cyclictest entry
+    load = env.get(&quot;LOADGEN&quot;)
+    if not load:
+        load = &quot;idle&quot;
+    con.execute(cyclic_table.insert(),
+                **{&apos;id&apos;:env.get(&quot;BUILD_NUMBER&quot;),
+                   &apos;load&apos;:load,
+                   &apos;duration&apos;:env.get(&quot;DURATION&quot;),
+                   &apos;interval&apos;:env.get(&quot;INTERVAL&quot;),
+                   &apos;min&apos;:minmax[0],
+                   &apos;avg&apos;:minmax[1],
+                   &apos;max&apos;:minmax[2],
+                   &apos;boottest_id&apos;:env.get(&quot;BOOTTESTID&quot;),
+                   &apos;pass&apos;:breaks,
+                   &apos;threshold&apos;:env.get(&quot;LIMIT&quot;),
+                   &apos;testscript&apos;:cyclic_cmd,
+                   &apos;owner&apos;:env.get(&quot;ENTRYOWNER&quot;)})
+    trans.commit()
+    submit_hist_data(con, hist_table, cyc_data, threads)
+except:
+    trans.rollback()
+    raise
+
+con.close()
+</command>
+    </hudson.plugins.python.Python>
   </builders>
   <publishers>
     <hudson.tasks.ArtifactArchiver>
