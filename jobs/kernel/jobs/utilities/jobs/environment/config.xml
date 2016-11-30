@@ -6,7 +6,7 @@
   <properties>
     <hudson.plugins.libvirt.BeforeJobSnapshotJobProperty plugin="libvirt-slave@1.8.6-SNAPSHOT"/>
   </properties>
-  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.0">
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.1">
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
@@ -32,7 +32,12 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>cat env/kernel.properties &gt;&gt; environment.properties</command>
+      <command>cp env/global.properties environment.properties
+if [ -f env/kernel.properties ]
+then
+    cat env/kernel.properties &gt;&gt; environment.properties
+fi
+</command>
     </hudson.tasks.Shell>
     <org.jenkinsci.plugins.managedscripts.ScriptBuildStep plugin="managed-scripts@1.2.4">
       <buildStepId>org.jenkinsci.plugins.managedscripts.ScriptConfig1457780866812</buildStepId>
@@ -86,7 +91,7 @@
     </hudson.tasks.ArtifactArchiver>
   </publishers>
   <buildWrappers>
-    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.30">
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.32">
       <deleteDirs>false</deleteDirs>
       <cleanupParameter></cleanupParameter>
       <externalDelete></externalDelete>

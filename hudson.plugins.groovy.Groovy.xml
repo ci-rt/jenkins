@@ -1,8 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<hudson.plugins.groovy.Groovy_-DescriptorImpl plugin="groovy@1.29">
-  <instanceCounter>
-    <value>0</value>
-  </instanceCounter>
+<hudson.plugins.groovy.Groovy_-DescriptorImpl plugin="groovy@1.30">
   <allowMacro>false</allowMacro>
   <installations/>
   <installations2/>

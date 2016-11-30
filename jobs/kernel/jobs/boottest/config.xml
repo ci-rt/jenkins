@@ -9,17 +9,12 @@
         <hudson.model.StringParameterDefinition>
           <name>KERNELBUILD</name>
           <description></description>
-          <defaultValue>223</defaultValue>
+          <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>BOOTTESTS</name>
           <description></description>
-          <defaultValue>boot/target1 boot/target2</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>ENTRYOWNER</name>
-          <description></description>
-          <defaultValue>consumer</defaultValue>
+          <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>COMPILETESTBRANCH</name>
@@ -35,7 +30,7 @@
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.libvirt.BeforeJobSnapshotJobProperty plugin="libvirt-slave@1.8.6-SNAPSHOT"/>
   </properties>
-  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.0">
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.1">
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
@@ -79,28 +74,10 @@
   <builders>
     <hudson.tasks.Shell>
       <command>cp $boottest boottest.properties
-echo &quot;KERNELBUILD=$KERNELBUILD&quot; &gt;&gt; boottest.properties</command>
+echo &quot;KERNELBUILD=$KERNELBUILD&quot; &gt;&gt; boottest.properties
+echo &quot;BOOTTEST=$boottest&quot; &gt;&gt; boottest.properties
+</command>
     </hudson.tasks.Shell>
-    <EnvInjectBuilder plugin="envinject@1.92.1">
-      <info>
-        <propertiesFilePath>boottest.properties</propertiesFilePath>
-      </info>
-    </EnvInjectBuilder>
-    <org.jenkinsci.plugins.managedscripts.ScriptBuildStep plugin="managed-scripts@1.2.4">
-      <buildStepId>org.jenkinsci.plugins.managedscripts.ScriptConfig1457780866812</buildStepId>
-      <buildStepArgs>
-        <string>${CYCLICTEST}</string>
-        <string>CYCLICTESTS</string>
-        <string>boottest.properties</string>
-      </buildStepArgs>
-      <tokenized>false</tokenized>
-    </org.jenkinsci.plugins.managedscripts.ScriptBuildStep>
-    <EnvInjectBuilder plugin="envinject@1.92.1">
-      <info>
-        <propertiesFilePath>boottest.properties</propertiesFilePath>
-      </info>
-    </EnvInjectBuilder>
-    <org.jvnet.hudson.plugins.exclusion.CriticalBlockStart plugin="Exclusion@0.12"/>
     <hudson.plugins.parameterizedtrigger.TriggerBuilder plugin="parameterized-trigger@2.32">
       <configs>
         <hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
@@ -111,8 +88,11 @@ echo &quot;KERNELBUILD=$KERNELBUILD&quot; &gt;&gt; boottest.properties</command>
               <useMatrixChild>false</useMatrixChild>
               <onlyExactRuns>false</onlyExactRuns>
             </hudson.plugins.parameterizedtrigger.FileBuildParameters>
+            <hudson.plugins.git.GitRevisionBuildParameters plugin="git@3.0.1">
+              <combineQueuedCommits>false</combineQueuedCommits>
+            </hudson.plugins.git.GitRevisionBuildParameters>
           </configs>
-          <projects>kernel/utilities/targetprep</projects>
+          <projects>kernel/utilities/boottest-runner</projects>
           <condition>ALWAYS</condition>
           <triggerWithNoParameters>false</triggerWithNoParameters>
           <block>
@@ -139,133 +119,16 @@ echo &quot;KERNELBUILD=$KERNELBUILD&quot; &gt;&gt; boottest.properties</command>
         </hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
       </configs>
     </hudson.plugins.parameterizedtrigger.TriggerBuilder>
-    <org.jenkinsci.plugins.scriptler.builder.ScriptlerBuilder plugin="scriptler@2.9">
-      <builderId>1465645684678_5</builderId>
-      <scriptId>offline.groovy</scriptId>
-      <propagateParams>false</propagateParams>
-      <parameters>
-        <org.jenkinsci.plugins.scriptler.config.Parameter>
-          <name>target</name>
-          <value>$TARGET</value>
-        </org.jenkinsci.plugins.scriptler.config.Parameter>
-        <org.jenkinsci.plugins.scriptler.config.Parameter>
-          <name>kbuild</name>
-          <value>$KERNELBUILD</value>
-        </org.jenkinsci.plugins.scriptler.config.Parameter>
-      </parameters>
-    </org.jenkinsci.plugins.scriptler.builder.ScriptlerBuilder>
-    <hudson.tasks.Shell>
-      <command>export ARCH=$(dirname &quot;$CONFIG&quot;)
-export BUILDID=&quot;$($PGSQL -A -q -t -c &quot;SELECT id FROM build WHERE kernelbuild_id=&quot;\&apos;&quot;$KERNELBUILD&quot;\&apos;&quot; AND arch=&quot;\&apos;&quot;$ARCH&quot;\&apos;&quot; AND config=&quot;\&apos;&quot;$(basename $CONFIG)&quot;\&apos;&quot; AND overlay=&quot;\&apos;&quot;$OVERLAY&quot;\&apos;&quot;;&quot; RT-Test)&quot;
-export TARGETID=&quot;$($PGSQL -A -q -t -c &quot;select id from target where hostname=&quot;\&apos;&quot;$TARGET&quot;\&apos;&quot;;&quot; RT-Test)&quot;
-export BOOTDATE=&quot;$(date -u +&quot;%Y-%m-%d %H:%M:%S&quot;)&quot;
-# BOOTTESTID doesn&apos;t fit to jenkins BUILD_NUMBER of boottest because it is a multi configuration test.
-export BOOTTESTID=&quot;$($PGSQL -A -q -t -c &quot;INSERT INTO boottest (cmdline, pass, target_id, build_id, bootdate, owner) VALUES(&quot;\&apos;&quot;none&quot;\&apos;&quot;, &quot;\&apos;&quot;0&quot;\&apos;&quot;, &quot;\&apos;&quot;$TARGETID&quot;\&apos;&quot;, &quot;\&apos;&quot;$BUILDID&quot;\&apos;&quot;, &quot;\&apos;&quot;$BOOTDATE&quot;\&apos;&quot;, &quot;\&apos;&quot;$ENTRYOWNER&quot;\&apos;&quot;) RETURNING id;&quot; RT-Test)&quot;
-
-mkdir -p result
-export SERLOG=$(readlink -f &quot;/srv/logs/${TARGET}.log&quot;)
-rm -f $SERLOG
-touch $SERLOG
-
-# Brave New World: systemd kills the network before ssh terminates, therefore -t now, witch is really now + a bit.
-ssh $TARGET &quot;sudo shutdown -r -t now&quot;
-sleep 150
-export TVERSION=$(ssh -o ConnectTimeout=10 -o ConnectionAttempts=6 $TARGET uname -r | sed &apos;s/.*-\([0-9]\+\)\(-g[0-9a-fA-F]\+\)*$/\1/&apos;)
-if [ &quot;$TVERSION&quot; != &quot;$KERNELBUILD&quot; ]
-then
-    ssh $TARGET &quot;sudo shutdown -r -t now&quot; || (virsh -c &quot;r4d://localhost/WS/&quot; shutdown $TARGET; sleep 1; virsh -c &quot;r4d://localhost/WS/&quot; start $TARGET)
-    cp $SERLOG result/
-    echo &quot;The booted kernel version $TVERSION on target $TARGET differs from version $KERNELBUILD under test.&quot;
-    exit 1
-fi
-sleep 30
-cp $SERLOG result/
-
-export PASS=&quot;1&quot;
-export KERNCMDLINE=&quot;$(ssh $TARGET cat /proc/cmdline)&quot;
-
-if [ &quot;x$KERNCMDLINE&quot; == x ]
-then
-    export PASS=&quot;0&quot;
-    export KERNCMDLINE=&quot;none&quot;
-fi
-
-$PGSQL -c &quot;UPDATE boottest SET cmdline = &quot;\&apos;&quot;$KERNCMDLINE&quot;\&apos;&quot;, pass = &quot;\&apos;&quot;$PASS&quot;\&apos;&quot; WHERE id = &quot;\&apos;&quot;$BOOTTESTID&quot;\&apos;&quot;;&quot; RT-Test
-
-echo &quot;BUILDID=$BUILDID&quot; &gt;&gt; boottest.properties
-echo &quot;BOOTDATE=$BOOTDATE&quot; &gt;&gt; boottest.properties
-echo &quot;BOOTTESTID=$BOOTTESTID&quot; &gt;&gt; boottest.properties
-
-cp boottest.properties result/</command>
-    </hudson.tasks.Shell>
-    <EnvInjectBuilder plugin="envinject@1.92.1">
-      <info>
-        <propertiesFilePath>boottest.properties</propertiesFilePath>
-      </info>
-    </EnvInjectBuilder>
-    <org.jenkinsci.plugins.scriptler.builder.ScriptlerBuilder plugin="scriptler@2.9">
-      <builderId>1465810484007_4</builderId>
-      <scriptId>online.groovy</scriptId>
-      <propagateParams>false</propagateParams>
-      <parameters>
-        <org.jenkinsci.plugins.scriptler.config.Parameter>
-          <name>target</name>
-          <value>$TARGET</value>
-        </org.jenkinsci.plugins.scriptler.config.Parameter>
-        <org.jenkinsci.plugins.scriptler.config.Parameter>
-          <name>kbuild</name>
-          <value>$KERNELBUILD</value>
-        </org.jenkinsci.plugins.scriptler.config.Parameter>
-      </parameters>
-    </org.jenkinsci.plugins.scriptler.builder.ScriptlerBuilder>
-    <org.jenkinsci.plugins.conditionalbuildstep.ConditionalBuilder plugin="conditional-buildstep@1.3.5">
-      <runner class="org.jenkins_ci.plugins.run_condition.BuildStepRunner$Fail" plugin="run-condition@1.0"/>
-      <runCondition class="org.jenkins_ci.plugins.run_condition.logic.Not" plugin="run-condition@1.0">
-        <condition class="org.jenkins_ci.plugins.run_condition.core.ExpressionCondition">
-          <expression>^\s*$</expression>
-          <label>${ENV,var=&quot;CYCLICTEST&quot;}</label>
-        </condition>
-      </runCondition>
-      <conditionalbuilders>
-        <hudson.plugins.parameterizedtrigger.TriggerBuilder plugin="parameterized-trigger@2.32">
-          <configs>
-            <hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
-              <configs>
-                <hudson.plugins.git.GitRevisionBuildParameters plugin="git@3.0.0">
-                  <combineQueuedCommits>false</combineQueuedCommits>
-                </hudson.plugins.git.GitRevisionBuildParameters>
-                <hudson.plugins.parameterizedtrigger.FileBuildParameters>
-                  <propertiesFile>boottest.properties</propertiesFile>
-                  <failTriggerOnMissing>false</failTriggerOnMissing>
-                  <useMatrixChild>false</useMatrixChild>
-                  <onlyExactRuns>false</onlyExactRuns>
-                </hudson.plugins.parameterizedtrigger.FileBuildParameters>
-                <hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
-                  <properties>BOOTTESTID=${BOOTTESTID}
-ENTRYOWNER=${ENTRYOWNER}</properties>
-                </hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
-              </configs>
-              <projects>kernel/cyclictest</projects>
-              <condition>ALWAYS</condition>
-              <triggerWithNoParameters>false</triggerWithNoParameters>
-              <block/>
-              <buildAllNodesWithLabel>false</buildAllNodesWithLabel>
-            </hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
-          </configs>
-        </hudson.plugins.parameterizedtrigger.TriggerBuilder>
-        <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38.1">
-          <project>kernel/cyclictest</project>
-          <filter></filter>
-          <target>result/</target>
-          <excludes></excludes>
-          <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-            <buildNumber>${TRIGGERED_BUILD_NUMBERS_kernel_cyclictest}</buildNumber>
-          </selector>
-          <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
-        </hudson.plugins.copyartifact.CopyArtifact>
-      </conditionalbuilders>
-    </org.jenkinsci.plugins.conditionalbuildstep.ConditionalBuilder>
-    <org.jvnet.hudson.plugins.exclusion.CriticalBlockEnd plugin="Exclusion@0.12"/>
+    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38.1">
+      <project>kernel/utilities/boottest-runner</project>
+      <filter></filter>
+      <target>result/</target>
+      <excludes></excludes>
+      <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
+        <buildNumber>${TRIGGERED_BUILD_NUMBERS_kernel_utilities_boottest_runner}</buildNumber>
+      </selector>
+      <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
+    </hudson.plugins.copyartifact.CopyArtifact>
   </builders>
   <publishers>
     <hudson.tasks.ArtifactArchiver>
@@ -283,13 +146,6 @@ ENTRYOWNER=${ENTRYOWNER}</properties>
       <cleanupParameter></cleanupParameter>
       <externalDelete></externalDelete>
     </hudson.plugins.ws__cleanup.PreBuildCleanup>
-    <org.jvnet.hudson.plugins.exclusion.IdAllocator plugin="Exclusion@0.12">
-      <ids>
-        <org.jvnet.hudson.plugins.exclusion.DefaultIdType>
-          <name>TARGET</name>
-        </org.jvnet.hudson.plugins.exclusion.DefaultIdType>
-      </ids>
-    </org.jvnet.hudson.plugins.exclusion.IdAllocator>
     <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.7"/>
   </buildWrappers>
   <executionStrategy class="hudson.matrix.DefaultMatrixExecutionStrategyImpl">

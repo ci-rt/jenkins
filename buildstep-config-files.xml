@@ -69,9 +69,9 @@ fi
 ARCH=$(dirname $CONF)
 BUILD=build
 
-CONFFILE=&quot;.env/configs/${CONF}&quot;
-OVERLAYFILE=&quot;.env/overlays/${OVERLAY}&quot;
-ARCHOVERLAYFILE=&quot;.env/overlays/${ARCH}/${OVERLAY}&quot;
+CONFFILE=&quot;.env/compile/configs/${CONF}&quot;
+OVERLAYFILE=&quot;.env/compile/overlays/${OVERLAY}&quot;
+ARCHOVERLAYFILE=&quot;.env/compile/overlays/${ARCH}/${OVERLAY}&quot;
 CUSTBRANCH=&quot;.env/custom/${CONF}&quot;
 t1=.temp1
 t2=.temp2

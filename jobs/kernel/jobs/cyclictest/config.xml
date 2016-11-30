@@ -30,7 +30,7 @@
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.libvirt.BeforeJobSnapshotJobProperty plugin="libvirt-slave@1.8.6-SNAPSHOT"/>
   </properties>
-  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.0">
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.1">
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
@@ -66,7 +66,7 @@
     </ca.silvermaplesolutions.jenkins.plugins.daxis.DynamicAxis>
   </axes>
   <builders>
-    <EnvInjectBuilder plugin="envinject@1.92.1">
+    <EnvInjectBuilder plugin="envinject@1.93.1">
       <info>
         <propertiesFilePath>${cyclictest}</propertiesFilePath>
       </info>
@@ -75,7 +75,7 @@
       <configs>
         <hudson.plugins.parameterizedtrigger.BlockableBuildTriggerConfig>
           <configs>
-            <hudson.plugins.git.GitRevisionBuildParameters plugin="git@3.0.0">
+            <hudson.plugins.git.GitRevisionBuildParameters plugin="git@3.0.1">
               <combineQueuedCommits>false</combineQueuedCommits>
             </hudson.plugins.git.GitRevisionBuildParameters>
             <hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
@@ -169,7 +169,7 @@ def submit_hist_data(con, hist_table, cyc_data, threads):
                         cpu=i[0],
                         latency=i[1],
                         count=i[2],
-                        cyclictest_id=env.get(&quot;BUILD_NUMBER&quot;),
+                        cyclictest_id=env.get(&quot;TRIGGERED_BUILD_NUMBERS_kernel_utilities_cyclictest_runner&quot;),
                         owner=env.get(&quot;ENTRYOWNER&quot;))
         trans.commit()
     except:
@@ -306,7 +306,7 @@ try:
     if not load:
         load = &quot;idle&quot;
     con.execute(cyclic_table.insert(),
-                **{&apos;id&apos;:env.get(&quot;BUILD_NUMBER&quot;),
+                **{&apos;id&apos;:env.get(&quot;TRIGGERED_BUILD_NUMBERS_kernel_utilities_cyclictest_runner&quot;),
                    &apos;load&apos;:load,
                    &apos;duration&apos;:env.get(&quot;DURATION&quot;),
                    &apos;interval&apos;:env.get(&quot;INTERVAL&quot;),
@@ -338,7 +338,13 @@ con.close()
       <caseSensitive>true</caseSensitive>
     </hudson.tasks.ArtifactArchiver>
   </publishers>
-  <buildWrappers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.32">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
   <executionStrategy class="hudson.matrix.DefaultMatrixExecutionStrategyImpl">
     <runSequentially>true</runSequentially>
   </executionStrategy>

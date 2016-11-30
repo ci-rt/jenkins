@@ -70,7 +70,7 @@
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.libvirt.BeforeJobSnapshotJobProperty plugin="libvirt-slave@1.8.6-SNAPSHOT"/>
   </properties>
-  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.0">
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.0.1">
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
@@ -161,7 +161,7 @@
       </buildStepArgs>
       <tokenized>false</tokenized>
     </org.jenkinsci.plugins.managedscripts.ScriptBuildStep>
-    <EnvInjectBuilder plugin="envinject@1.92.1">
+    <EnvInjectBuilder plugin="envinject@1.93.1">
       <info>
         <propertiesFilePath>build/.properties</propertiesFilePath>
       </info>
@@ -209,7 +209,7 @@ $PGSQL -q -t -c &quot;UPDATE build SET pass = &quot;\&apos;&quot;1&quot;\&apos;&
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.plugins.warnings.WarningsPublisher plugin="warnings@4.57">
+    <hudson.plugins.warnings.WarningsPublisher plugin="warnings@4.58">
       <healthy></healthy>
       <unHealthy></unHealthy>
       <thresholdLimit>low</thresholdLimit>
@@ -219,7 +219,7 @@ $PGSQL -q -t -c &quot;UPDATE build SET pass = &quot;\&apos;&quot;1&quot;\&apos;&
       <usePreviousBuildAsReference>false</usePreviousBuildAsReference>
       <useStableBuildAsReference>false</useStableBuildAsReference>
       <useDeltaValues>false</useDeltaValues>
-      <thresholds plugin="analysis-core@1.79">
+      <thresholds plugin="analysis-core@1.80">
         <unstableTotalAll></unstableTotalAll>
         <unstableTotalHigh></unstableTotalHigh>
         <unstableTotalNormal></unstableTotalNormal>
@@ -255,50 +255,6 @@ $PGSQL -q -t -c &quot;UPDATE build SET pass = &quot;\&apos;&quot;1&quot;\&apos;&
         </hudson.plugins.warnings.ConsoleParser>
       </consoleParsers>
     </hudson.plugins.warnings.WarningsPublisher>
-    <hudson.plugins.parameterizedtrigger.BuildTrigger plugin="parameterized-trigger@2.32">
-      <configs>
-        <hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
-          <configs>
-            <hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
-              <properties>KERNELBUILD=${BUILD_NUMBER}
-BOOTTESTS=${BOOTTESTS}
-ENTRYOWNER=${ENTRYOWNER}
-COMPILETESTBRANCH=${COMPILETESTBRANCH}
-COMPILETESTCOMMIT=${COMPILETESTCOMMIT}
-</properties>
-            </hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
-          </configs>
-          <projects>kernel/boottest</projects>
-          <condition>ALWAYS</condition>
-          <triggerWithNoParameters>false</triggerWithNoParameters>
-        </hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
-      </configs>
-    </hudson.plugins.parameterizedtrigger.BuildTrigger>
-    <join.JoinTrigger plugin="join@1.21">
-      <joinProjects></joinProjects>
-      <joinPublishers>
-        <hudson.plugins.parameterizedtrigger.BuildTrigger plugin="parameterized-trigger@2.32">
-          <configs>
-            <hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
-              <configs>
-                <hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
-                  <properties>KERNELBUILD=${BUILD_NUMBER}</properties>
-                </hudson.plugins.parameterizedtrigger.PredefinedBuildParameters>
-              </configs>
-              <projects>kernel/utilities/markgood</projects>
-              <condition>SUCCESS</condition>
-              <triggerWithNoParameters>false</triggerWithNoParameters>
-            </hudson.plugins.parameterizedtrigger.BuildTriggerConfig>
-          </configs>
-        </hudson.plugins.parameterizedtrigger.BuildTrigger>
-      </joinPublishers>
-      <resultThreshold>
-        <name>SUCCESS</name>
-        <ordinal>0</ordinal>
-        <color>BLUE</color>
-        <completeBuild>true</completeBuild>
-      </resultThreshold>
-    </join.JoinTrigger>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>report/**</artifacts>
       <allowEmptyArchive>false</allowEmptyArchive>
