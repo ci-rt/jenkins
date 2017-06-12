@@ -159,6 +159,12 @@ https://ci-rt.linutronix.de/RT-Test/about.jsp[here].
 Sources of the adapted Jenkins libvirt slaves plugin can be found
 https://github.com/ci-rt/libvirt-slave-plugin[here]
 
+The Jenkins warnings plugin is a collection of parsers to parse compile and
+other output for errors and warnings. The plugin is used to handle gcc output
+while compiling the kernel, look for BUGS and WARNINGS while booting and
+search for errors and warning from cyclictest. The output is dressed for
+Jenkins and is available through the Jenkins UI.
+
 Sources of the adapted Jenkins warning plugin can be found
 https://github.com/ci-rt/warning-plugin[here]
 
