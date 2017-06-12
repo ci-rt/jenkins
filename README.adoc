@@ -159,6 +159,9 @@ https://ci-rt.linutronix.de/RT-Test/about.jsp[here].
 Sources of the adapted Jenkins libvirt slaves plugin can be found
 https://github.com/ci-rt/libvirt-slave-plugin[here]
 
+Sources of the adapted Jenkins warning plugin can be found
+https://github.com/ci-rt/warning-plugin[here]
+
 Sources of r4d can be found https://github.com/ci-rt/r4d[here].
 Sources of libr4d can be found https://github.com/ci-rt/libr4d[here].
 Sources of adapted libvirt version can be found https://github.com/ci-rt/libvirt[here]
